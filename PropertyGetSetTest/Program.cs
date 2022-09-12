@@ -1,6 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
+
 using FastMember;
+
+using Microsoft.Extensions.Internal;
+
 internal class Program
 {
     private static void Main(string[] args)
@@ -17,7 +21,6 @@ internal class Program
 
         TypeAccessor typeAccessor = TypeAccessor.Create(bookType);
         typeAccessor[book, nameof(Book.Name)] = "TTYYYRYRY";
-
 
         PropertyInfo namePropertyInfo = bookType.GetProperty(nameof(Book.Name))!;
         MethodInfo nameGetMethod = namePropertyInfo.GetGetMethod()!;
@@ -36,21 +39,21 @@ internal class Program
 
         //1
         stopwatch.Restart();
-        RunByPropertyInfo();
+        RunByCachedPropertyInfo();
         stopwatch.Stop();
 
         Console.WriteLine($"PropertyInfo Method : {stopwatch.ElapsedMilliseconds}");
 
         //2
         stopwatch.Restart();
-        RunByGetterSetter();
+        RunByMethodInfo();
         stopwatch.Stop();
 
         Console.WriteLine($"Getter Setter Method : {stopwatch.ElapsedMilliseconds}");
 
         //2-1
         stopwatch.Restart();
-        RunByGetterSetterDelegate();
+        RunByMethodInfoDelegate();
         stopwatch.Stop();
 
         Console.WriteLine($"Getter Setter Delegate Method : {stopwatch.ElapsedMilliseconds}");
@@ -76,6 +79,16 @@ internal class Program
 
         Console.WriteLine($"Fastmember Method : {stopwatch.ElapsedMilliseconds}");
 
+        //6
+
+        ObjectMethodExecutor methodExecutor = ObjectMethodExecutor.Create(nameSetMethod, bookType.GetTypeInfo());
+
+        stopwatch.Restart();
+        RunByObjectMethodExecutor();
+        stopwatch.Stop();
+
+        Console.WriteLine($"ObjectMethodExecutor Method : {stopwatch.ElapsedMilliseconds}");
+
         void RunByDirect()
         {
             //foreach (Book book in books)
@@ -90,7 +103,7 @@ internal class Program
 
         }
 
-        void RunByPropertyInfo()
+        void RunByCachedPropertyInfo()
         {
             //foreach (Book book in books)
             //{
@@ -103,24 +116,23 @@ internal class Program
             }
         }
 
-        void RunByGetterSetter()
+        void RunByMethodInfo()
         {
             //foreach (Book book in books)
             //{
             //    object? obj = nameGetMethod.Invoke(book, null);
             //}
 
-            
             foreach (Book book in books)
             {
                 nameSetMethod.Invoke(book, new object[] { "TTTT" });
             }
         }
 
-        void RunByGetterSetterDelegate()
+        void RunByMethodInfoDelegate()
         {
 
-            foreach(Book book in books)
+            foreach (Book book in books)
             {
                 nameSetDelegate.Invoke(book, "sdfsfs");
             }
@@ -132,7 +144,8 @@ internal class Program
 
             foreach (Book book in books)
             {
-                PropertyAccessor.Set(bookType, book, "Name", "BBBBBBBB");
+                PropertyAccessor.Set(bookType, (object)book, "Name", (object)"BBBBBBBB");
+                PropertyAccessor.Set(bookType, book, nameof(Book.Price), 12.323);
                 //action(book, "BBBBB");
             }
         }
@@ -156,6 +169,14 @@ internal class Program
             }
         }
 
+        void RunByObjectMethodExecutor()
+        {
+            foreach (Book book in books)
+            {
+                methodExecutor.Execute(book, new object[] { "sfasf" });
+            }
+        }
+
         static IList<Book> MockBooks(int count = 100000)
         {
             Random random = new Random();
@@ -173,6 +194,7 @@ internal class Program
             return books;
         }
     }
+
 }
 
 public class Book
@@ -181,16 +203,20 @@ public class Book
 
     public double Price { get; set; }
 
+    public int[] Indexs { get; set; }
+
+    public IList<string> Lsts { get; set; }
+
     public object this[int index]
     {
-        get {
+        get
+        {
             return "Itttt";
         }
-        set {
+        set
+        {
 
         }
     }
 }
-
-
 
